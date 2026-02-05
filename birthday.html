@@ -627,6 +627,18 @@
         .will-change {
             will-change: transform;
         }
+
+        /* Loading state for images */
+        .loading {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
     </style>
 </head>
 <body>
@@ -667,7 +679,8 @@
                     <div class="countdown-number" id="minutes">00</div>
                     <div class="countdown-label">Minutes</div>
                 </div>
-                <div class="countdown-number" id="seconds">00</div>
+                <div class="countdown-item">
+                    <div class="countdown-number" id="seconds">00</div>
                     <div class="countdown-label">Seconds</div>
                 </div>
             </div>
@@ -689,7 +702,7 @@
                     </div>
                     
                     <div class="main-photo-container" id="mainPhotoContainer">
-                        <img id="mainPhoto" class="main-photo" src="" alt="Birthday Photo">
+                        <img id="mainPhoto" class="main-photo loading" src="" alt="Birthday Photo">
                     </div>
                     
                     <div class="swipe-hint">
@@ -775,26 +788,25 @@
     </div>
 
     <script>
-        // Photo data - REPLACE THESE WITH YOUR FRIEND'S JPG PHOTOS
-        // For mobile, we'll use optimized Unsplash images that work well on phones
+        // YOUR FRIEND'S PHOTOS - These are the JPG files you mentioned
         const photos = [
             {
-                url: "https://images.unsplash.com/photo-1494790108755-2616b786d4d1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                url: "her1.jpg",  // Your first photo
                 title: "Beautiful Smile",
                 description: "Your smile lights up every room!"
             },
             {
-                url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                url: "her2.jpg",  // Your second photo
                 title: "Celebrating Life",
                 description: "Always celebrating the beautiful moments"
             },
             {
-                url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                url: "her3.jpg",  // Your third photo
                 title: "Joyful Moments",
                 description: "So much joy in every moment with you"
             },
             {
-                url: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                url: "her4.jpg",  // Your fourth photo
                 title: "Adventures Together",
                 description: "The best adventures are with you"
             }
@@ -839,7 +851,7 @@
             
             // Show initial notification
             setTimeout(() => {
-                showNotification("Swipe to see more photos! ❤️");
+                showNotification("Happy Birthday! 🎂 Swipe to see your photos!");
             }, 1000);
             
             // Initialize countdown
@@ -871,6 +883,24 @@
             
             document.addEventListener('touchstart', resetAutoRotate);
             document.addEventListener('click', resetAutoRotate);
+            
+            // Check if images load successfully
+            checkImageLoad();
+        }
+
+        // Check if images load successfully
+        function checkImageLoad() {
+            photos.forEach((photo, index) => {
+                const img = new Image();
+                img.onload = function() {
+                    console.log(`Photo ${index + 1} loaded successfully: ${photo.url}`);
+                };
+                img.onerror = function() {
+                    console.warn(`Could not load photo: ${photo.url}`);
+                    showNotification(`Photo ${index + 1} not found. Make sure it's in the same folder.`);
+                };
+                img.src = photo.url;
+            });
         }
 
         // Initialize photo gallery
@@ -884,8 +914,22 @@
                 const thumbnail = document.createElement('img');
                 thumbnail.src = photo.url;
                 thumbnail.alt = photo.title;
-                thumbnail.classList.add('thumbnail');
+                thumbnail.classList.add('thumbnail', 'loading');
                 if (index === 0) thumbnail.classList.add('active');
+                
+                // Remove loading class when image loads
+                thumbnail.onload = function() {
+                    thumbnail.classList.remove('loading');
+                };
+                
+                thumbnail.onerror = function() {
+                    thumbnail.classList.remove('loading');
+                    thumbnail.style.backgroundColor = '#f0f0f0';
+                    thumbnail.style.display = 'flex';
+                    thumbnail.style.alignItems = 'center';
+                    thumbnail.style.justifyContent = 'center';
+                    thumbnail.innerHTML = '<i class="fas fa-image" style="color:#ccc; font-size:1.5rem;"></i>';
+                };
                 
                 thumbnail.addEventListener('click', () => {
                     currentPhotoIndex = index;
@@ -899,9 +943,24 @@
                 const memoryItem = document.createElement('div');
                 memoryItem.classList.add('memory-item');
                 memoryItem.innerHTML = `
-                    <img src="${photo.url}" alt="${photo.title}">
+                    <img src="${photo.url}" alt="${photo.title}" class="loading">
                     <div class="memory-overlay">${photo.title}</div>
                 `;
+                
+                // Handle image load for memory items
+                const memoryImg = memoryItem.querySelector('img');
+                memoryImg.onload = function() {
+                    memoryImg.classList.remove('loading');
+                };
+                
+                memoryImg.onerror = function() {
+                    memoryImg.classList.remove('loading');
+                    memoryImg.style.backgroundColor = '#f0f0f0';
+                    memoryImg.style.display = 'flex';
+                    memoryImg.style.alignItems = 'center';
+                    memoryImg.style.justifyContent = 'center';
+                    memoryImg.innerHTML = '<i class="fas fa-image" style="color:#ccc; font-size:2rem;"></i>';
+                };
                 
                 memoryItem.addEventListener('click', () => {
                     openFullscreen(photo.url);
@@ -913,9 +972,25 @@
 
         // Update main photo
         function updateMainPhoto() {
-            mainPhoto.src = photos[currentPhotoIndex].url;
-            mainPhoto.alt = photos[currentPhotoIndex].title;
+            const photo = photos[currentPhotoIndex];
+            mainPhoto.src = photo.url;
+            mainPhoto.alt = photo.title;
             currentPhotoIndexEl.textContent = currentPhotoIndex + 1;
+            
+            // Remove loading class when image loads
+            mainPhoto.onload = function() {
+                mainPhoto.classList.remove('loading');
+            };
+            
+            mainPhoto.onerror = function() {
+                mainPhoto.classList.remove('loading');
+                mainPhoto.style.backgroundColor = '#f0f0f0';
+                mainPhoto.style.display = 'flex';
+                mainPhoto.style.alignItems = 'center';
+                mainPhoto.style.justifyContent = 'center';
+                mainPhoto.innerHTML = '<div style="text-align:center; color:#666; padding:20px;"><i class="fas fa-image" style="font-size:3rem; margin-bottom:10px;"></i><p>Photo not found</p><p>Make sure her' + (currentPhotoIndex + 1) + '.jpg is in the same folder</p></div>';
+            };
+            
             updateActiveThumbnail();
         }
 
@@ -1099,14 +1174,13 @@
             document.body.style.overflow = 'auto';
         }
 
-        // Birthday countdown
+        // Birthday countdown (counting down to midnight)
         function updateCountdown() {
-            // For demo, counting down to end of day
             const now = new Date();
-            const endOfDay = new Date();
-            endOfDay.setHours(23, 59, 59, 999);
+            const midnight = new Date();
+            midnight.setHours(23, 59, 59, 999);
             
-            const diff = endOfDay - now;
+            const diff = midnight - now;
             
             const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -1115,9 +1189,6 @@
             document.getElementById('hours').textContent = hours.toString().padStart(2, '0');
             document.getElementById('minutes').textContent = minutes.toString().padStart(2, '0');
             document.getElementById('seconds').textContent = seconds.toString().padStart(2, '0');
-            
-            // Days is always 0 for today's birthday
-            document.getElementById('days').textContent = "00";
         }
 
         // Event listeners for mobile
@@ -1130,7 +1201,7 @@
         // Interactive buttons
         surpriseBtn.addEventListener('click', () => {
             createConfetti();
-            showNotification("🎂 Surprise! Happy Birthday! 🎉");
+            showNotification("🎂 Birthday Surprise! Wishing you joy! 🎉");
             
             // Vibrate on mobile if supported
             if (navigator.vibrate) {
@@ -1152,7 +1223,9 @@
                 "May all your birthday wishes come true! ✨",
                 "Wishing you endless happiness! 🌟",
                 "May this year be your best one yet! 🎉",
-                "Here's to health and prosperity! 🥂"
+                "Here's to health and prosperity! 🥂",
+                "May your day be as special as you are! 💖",
+                "Wishing you love, laughter, and cake! 🎂"
             ];
             const randomWish = wishes[Math.floor(Math.random() * wishes.length)];
             showNotification(randomWish);
